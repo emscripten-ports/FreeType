@@ -39,10 +39,12 @@
 
   static FT_Error
   af_dummy_hints_apply( AF_GlyphHints  hints,
-                        FT_Outline*    outline )
+                        FT_Outline*    outline,
+                        AF_StyleMetrics metrics )
   {
     FT_Error  error;
 
+    FT_UNUSED(metrics);
 
     error = af_glyph_hints_reload( hints, outline );
     if ( !error )
