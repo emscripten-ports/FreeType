@@ -1,56 +1,55 @@
-/***************************************************************************/
-/*                                                                         */
-/*  t1parse.c                                                              */
-/*                                                                         */
-/*    Type 1 parser (body).                                                */
-/*                                                                         */
-/*  Copyright 1996-2015 by                                                 */
-/*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
-/*                                                                         */
-/*  This file is part of the FreeType project, and may only be used,       */
-/*  modified, and distributed under the terms of the FreeType project      */
-/*  license, LICENSE.TXT.  By continuing to use, modify, or distribute     */
-/*  this file you indicate that you have read the license and              */
-/*  understand and accept it fully.                                        */
-/*                                                                         */
-/***************************************************************************/
+/****************************************************************************
+ *
+ * t1parse.c
+ *
+ *   Type 1 parser (body).
+ *
+ * Copyright (C) 1996-2020 by
+ * David Turner, Robert Wilhelm, and Werner Lemberg.
+ *
+ * This file is part of the FreeType project, and may only be used,
+ * modified, and distributed under the terms of the FreeType project
+ * license, LICENSE.TXT.  By continuing to use, modify, or distribute
+ * this file you indicate that you have read the license and
+ * understand and accept it fully.
+ *
+ */
 
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* The Type 1 parser is in charge of the following:                      */
-  /*                                                                       */
-  /*  - provide an implementation of a growing sequence of objects called  */
-  /*    a `T1_Table' (used to build various tables needed by the loader).  */
-  /*                                                                       */
-  /*  - opening .pfb and .pfa files to extract their top-level and private */
-  /*    dictionaries.                                                      */
-  /*                                                                       */
-  /*  - read numbers, arrays & strings from any dictionary.                */
-  /*                                                                       */
-  /* See `t1load.c' to see how data is loaded from the font file.          */
-  /*                                                                       */
-  /*************************************************************************/
+  /**************************************************************************
+   *
+   * The Type 1 parser is in charge of the following:
+   *
+   * - provide an implementation of a growing sequence of objects called
+   *   a `T1_Table' (used to build various tables needed by the loader).
+   *
+   * - opening .pfb and .pfa files to extract their top-level and private
+   *   dictionaries.
+   *
+   * - read numbers, arrays & strings from any dictionary.
+   *
+   * See `t1load.c' to see how data is loaded from the font file.
+   *
+   */
 
 
-#include <ft2build.h>
-#include FT_INTERNAL_DEBUG_H
-#include FT_INTERNAL_STREAM_H
-#include FT_INTERNAL_POSTSCRIPT_AUX_H
+#include <freetype/internal/ftdebug.h>
+#include <freetype/internal/ftstream.h>
+#include <freetype/internal/psaux.h>
 
 #include "t1parse.h"
 
 #include "t1errors.h"
 
 
-  /*************************************************************************/
-  /*                                                                       */
-  /* The macro FT_COMPONENT is used in trace mode.  It is an implicit      */
-  /* parameter of the FT_TRACE() and FT_ERROR() macros, used to print/log  */
-  /* messages during execution.                                            */
-  /*                                                                       */
+  /**************************************************************************
+   *
+   * The macro FT_COMPONENT is used in trace mode.  It is an implicit
+   * parameter of the FT_TRACE() and FT_ERROR() macros, used to print/log
+   * messages during execution.
+   */
 #undef  FT_COMPONENT
-#define FT_COMPONENT  trace_t1parse
+#define FT_COMPONENT  t1parse
 
 
   /*************************************************************************/
@@ -169,21 +168,21 @@
       }
     }
 
-    /******************************************************************/
-    /*                                                                */
-    /* Here a short summary of what is going on:                      */
-    /*                                                                */
-    /*   When creating a new Type 1 parser, we try to locate and load */
-    /*   the base dictionary if this is possible (i.e., for PFB       */
-    /*   files).  Otherwise, we load the whole font into memory.      */
-    /*                                                                */
-    /*   When `loading' the base dictionary, we only setup pointers   */
-    /*   in the case of a memory-based stream.  Otherwise, we         */
-    /*   allocate and load the base dictionary in it.                 */
-    /*                                                                */
-    /*   parser->in_pfb is set if we are in a binary (`.pfb') font.   */
-    /*   parser->in_memory is set if we have a memory stream.         */
-    /*                                                                */
+    /*******************************************************************
+     *
+     * Here a short summary of what is going on:
+     *
+     *   When creating a new Type 1 parser, we try to locate and load
+     *   the base dictionary if this is possible (i.e., for PFB
+     *   files).  Otherwise, we load the whole font into memory.
+     *
+     *   When `loading' the base dictionary, we only setup pointers
+     *   in the case of a memory-based stream.  Otherwise, we
+     *   allocate and load the base dictionary in it.
+     *
+     *   parser->in_pfb is set if we are in a binary (`.pfb') font.
+     *   parser->in_memory is set if we have a memory stream.
+     */
 
     /* try to compute the size of the base dictionary;     */
     /* look for a Postscript binary file tag, i.e., 0x8001 */
@@ -334,7 +333,6 @@
       /* first of all, look at the `eexec' keyword */
       FT_Byte*    cur   = parser->base_dict;
       FT_Byte*    limit = cur + parser->base_len;
-      FT_Byte     c;
       FT_Pointer  pos_lf;
       FT_Bool     test_cr;
 
@@ -342,9 +340,9 @@
     Again:
       for (;;)
       {
-        c = cur[0];
-        if ( c == 'e' && cur + 9 < limit )  /* 9 = 5 letters for `eexec' + */
-                                            /* whitespace + 4 chars        */
+        if ( cur[0] == 'e'   &&
+             cur + 9 < limit )      /* 9 = 5 letters for `eexec' + */
+                                    /* whitespace + 4 chars        */
         {
           if ( cur[1] == 'e' &&
                cur[2] == 'x' &&
@@ -374,8 +372,15 @@
 
       while ( cur < limit )
       {
-        if ( *cur == 'e' && ft_strncmp( (char*)cur, "eexec", 5 ) == 0 )
-          goto Found;
+        if ( cur[0] == 'e'   &&
+             cur + 5 < limit )
+        {
+          if ( cur[1] == 'e' &&
+               cur[2] == 'x' &&
+               cur[3] == 'e' &&
+               cur[4] == 'c' )
+            goto Found;
+        }
 
         T1_Skip_PS_Token( parser );
         if ( parser->root.error )
@@ -389,6 +394,15 @@
 
       cur   = limit;
       limit = parser->base_dict + parser->base_len;
+
+      if ( cur >= limit )
+      {
+        FT_ERROR(( "T1_Get_Private_Dict:"
+                   " premature end in private dictionary\n" ));
+        error = FT_THROW( Invalid_File_Format );
+        goto Exit;
+      }
+
       goto Again;
 
       /* now determine where to write the _encrypted_ binary private  */
@@ -422,7 +436,7 @@
                 *cur == '\t'               ||
                 (test_cr && *cur == '\r' ) ||
                 *cur == '\n'               ) )
-        ++cur;
+        cur++;
       if ( cur >= limit )
       {
         FT_ERROR(( "T1_Get_Private_Dict:"
